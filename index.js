@@ -2,6 +2,7 @@ var Walker = require('node-source-walk');
 var types = require('ast-module-types');
 var escodegen = require('escodegen');
 var getModuleType = require('get-amd-module-type');
+var parser = require('esprima-fb');
 
 /**
  * @param  {String} src - the string content or AST of an AMD module
@@ -13,7 +14,7 @@ module.exports = function(src, options) {
   options = options || {};
 
   var dependencies = [];
-  var walker = new Walker();
+  var walker = new Walker({parser: parser});
 
   if (typeof src === 'undefined') { throw new Error('src not given'); }
   if (src === '') { return dependencies; }
@@ -54,7 +55,6 @@ module.exports = function(src, options) {
  */
 function getDependencies(node, type, options) {
   var dependencies;
-
   // Note: No need to handle nodeps since there won't be any dependencies
   switch (type) {
     case 'named':
@@ -111,11 +111,19 @@ function getLazyLoadedDeps(node) {
  * @returns {String[]} the literal values from the passed array
  */
 function getElementValues(nodeArguments) {
-  var elements = nodeArguments.elements || [];
-
-  return elements.map(function(el) {
-    return getEvaluatedValue(el);
-  }).filter(Boolean);
+  var dependencies = [];
+  if (nodeArguments.type === 'ArrayExpression') {
+    var elements = nodeArguments.elements || [];
+    dependencies = elements.map(function(el) {
+      return getEvaluatedValue(el);
+    }).filter(Boolean);
+  } else {
+    var dep = getEvaluatedValue(nodeArguments);
+    if (dep) {
+      dependencies.push(getEvaluatedValue(nodeArguments));
+    }
+  }
+  return dependencies;
 }
 
 /**
@@ -124,6 +132,6 @@ function getElementValues(nodeArguments) {
  */
 function getEvaluatedValue(node) {
   if (node.type === 'Literal' || node.type === 'StringLiteral') { return node.value; }
-  if (node.type === 'CallExpression') { return ''; }
+  if (node.type === 'CallExpression' || node.type === 'FunctionExpression') { return ''; }
   return escodegen.generate(node);
 }

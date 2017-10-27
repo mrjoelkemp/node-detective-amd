@@ -1,7 +1,7 @@
-var detective = require('../'),
-    fs     = require('fs'),
-    assert = require('assert'),
-    path   = require('path');
+var detective = require('../');
+var fs     = require('fs');
+var assert = require('assert');
+var path   = require('path');
 
 describe('detective-amd', function() {
   function getDepsOf(filepath, options) {
@@ -17,8 +17,8 @@ describe('detective-amd', function() {
         expression: {
           type: 'CallExpression',
           callee: {
-              type: 'Identifier',
-              name: 'define'
+            type: 'Identifier',
+            name: 'define'
           },
           arguments: [
             {
@@ -37,7 +37,8 @@ describe('detective-amd', function() {
               rest: null,
               generator: false,
               expression: false
-          }]
+            }
+          ]
         }
       }]
     };
@@ -87,6 +88,13 @@ describe('detective-amd', function() {
     assert(deps[0] === 'a');
   });
 
+  it('returns the dependencies of the named factory', function() {
+    var deps = getDepsOf('./amd/namedFactory.js');
+    assert(deps.length === 2);
+    assert(deps[0] === './b');
+    assert(deps[1] === './c');
+  });
+
   it('returns the dependencies of the dependency form', function() {
     var deps = getDepsOf('./amd/dep.js');
     assert(deps.length === 2);
@@ -130,6 +138,12 @@ describe('detective-amd', function() {
     var deps = getDepsOf('./amd/dynamicComputedRequire.js');
     assert(deps.length === 1);
     assert(deps[0] === './a');
+  });
+
+  it('expression-based define expressions', function() {
+    var deps = getDepsOf('./amd/expressionDefine.js');
+    assert(deps.length === 1);
+    assert(deps[0] === 'depList + [\'anotherBar\']');
   });
 
   describe('when given the option to omit lazy loaded requires', function() {
